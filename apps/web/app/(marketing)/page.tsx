@@ -21,7 +21,7 @@ const PROBLEMS = [
 ];
 
 const STEPS = [
-  { icon: ScanLine, title: "Paste or speak", body: "Add your receipts as text in English, Afrikaans or isiZulu." },
+  { icon: ScanLine, title: "Paste, snap or speak", body: "Add receipts as text, a photo, or spoken aloud in English, Afrikaans or isiZulu." },
   { icon: Calculator, title: "We work out the VAT", body: "Every rand is calculated in code, not by the AI — so it can be checked." },
   { icon: ShieldCheck, title: "We check the paperwork", body: "Each document is tested against what SARS needs for its amount." },
   { icon: PenLine, title: "You fix what matters", body: "Correct what needs correcting, and we write the message to the supplier." },

@@ -96,7 +96,7 @@ generates insights from the validated flags when Groq is unreachable.
 
 ```mermaid
 flowchart TD
-  A[Pasted or spoken receipt text] --> B[Server route /api/v1/analyse]
+  A[Pasted, scanned or spoken receipt text<br/>photo OCR runs in-browser] --> B[Server route /api/v1/analyse]
   B --> C[Groq, open-weight model<br/>EXTRACTION ONLY, no arithmetic]
   C --> D[Zod validation<br/>+ one repair retry]
   D --> E[Rules engine, pure TypeScript<br/>VAT · sums · duplicates · claimability · recurring]
@@ -118,7 +118,9 @@ The loop from H back to E is the human in the loop.
   supplier; that is deliberate — the system flags and the human decides.
 - Outlier detection needs five or more records and is suppressed below that.
 - Category assignment is a model judgement and will sometimes need correction.
-- Only plain text input; no OCR, no PDF, no images.
+- Input is text, photo or voice. Photo scanning runs OCR **in the browser** (Tesseract.js,
+  printed **English** only — the image never leaves the device); voice is transcribed via
+  Groq Whisper. No PDF import.
 - VAT logic assumes the 15% standard rate; no zero-rated or exempt supplies.
 - Recurrence is read from what documents state; with one month of data we cannot detect
   double-billing across months.
