@@ -1,36 +1,40 @@
 import type { Flag } from "@pocketpulse/core";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 
 // 3.3 Colour discipline: colour only where money is at stake. Recurring is blue (info),
 // high severity is red (loss), estimates/medium are amber (uncertainty), low is muted.
-function tone(f: Flag): string {
-  if (f.code === "recurring_commitment") return "bg-accent text-accent-foreground";
-  if (f.resolved) return "bg-success/12 text-success line-through/none";
-  if (f.severity === "high") return "bg-destructive/10 text-destructive";
-  if (f.is_estimate || f.severity === "medium") return "bg-warning/14 text-warning";
-  return "bg-secondary text-muted-foreground";
+function toneVariant(f: Flag): BadgeProps["variant"] {
+  if (f.code === "recurring_commitment") return "info";
+  if (f.resolved) return "successSoft";
+  if (f.severity === "high") return "dangerSoft";
+  if (f.is_estimate || f.severity === "medium") return "warningSoft";
+  return "secondary";
 }
 
 export function FlagChip({ flag }: { flag: Flag }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${tone(flag)}`}
+    <Badge
+      variant={toneVariant(flag)}
+      className="gap-1.5 rounded-full font-medium"
       title={flag.resolution ?? flag.message}
     >
       <span>{flag.message}</span>
       {flag.amount_label && <span className="font-semibold">· {flag.amount_label}</span>}
       {flag.is_estimate && !flag.resolved && (
-        <span className="rounded bg-warning/20 px-1 text-[10px] font-semibold uppercase tracking-wide">est</span>
+        <span className="rounded bg-warning/20 px-1 text-[10px] font-semibold uppercase tracking-wide">
+          est
+        </span>
       )}
       {flag.resolved && <span className="text-[10px] font-semibold uppercase">done</span>}
-    </span>
+    </Badge>
   );
 }
 
 // "Not found" / "Not confirmed" amber chips for null values (13 copy rules).
 export function NullChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-warning/14 px-2.5 py-1 text-xs font-medium text-warning">
+    <Badge variant="warningSoft" className="rounded-full font-medium">
       {label}
-    </span>
+    </Badge>
   );
 }

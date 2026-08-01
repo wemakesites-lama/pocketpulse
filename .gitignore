@@ -24,3 +24,6 @@ coverage/
 
 # generated standalone deploy bundle (scripts/make-standalone.sh)
 .standalone/
+
+# TS incremental build info
+*.tsbuildinfo

@@ -74,3 +74,38 @@ export async function analysePaste(text: string): Promise<AnalyseOutcome> {
     return { ok: false, error: { kind: "provider_unreachable", message: "Could not reach the analyser.", retryable: true } };
   }
 }
+
+// Photo scan: OCR each image IN THE BROWSER (image never leaves the device), then send
+// the recognised text — one record per image — through the same extraction+rules pipeline.
+export async function scanImages(
+  files: File[],
+  onProgress?: (index: number, total: number, fraction: number) => void,
+): Promise<AnalyseOutcome> {
+  const { ocrImage } = await import("./ocr.client");
+  const records: Array<{ source_id: string; text: string; input_source: "image" }> = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const text = await ocrImage(files[i]!, (f) => onProgress?.(i, files.length, f));
+      if (text.trim().length > 10) {
+        records.push({ source_id: `IMG-${String(i + 1).padStart(3, "0")}`, text, input_source: "image" });
+      }
+    } catch {
+      /* skip an unreadable image; reported via the empty-records path below */
+    }
+  }
+  if (records.length === 0) {
+    return {
+      ok: false,
+      error: {
+        kind: "empty_input",
+        message: "We couldn't read any text from those photos. Try a clearer, well-lit, straight-on shot.",
+        retryable: true,
+      },
+    };
+  }
+  try {
+    return await postAnalyse({ records });
+  } catch {
+    return { ok: false, error: { kind: "provider_unreachable", message: "Could not reach the analyser.", retryable: true } };
+  }
+}

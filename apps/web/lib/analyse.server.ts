@@ -62,7 +62,11 @@ export interface AnalyseResult {
   model: { provider: "groq"; model_id: string };
 }
 
-export async function analyseRecords(records: Array<{ source_id: string; text: string }>): Promise<AnalyseResult> {
+type InputSource = "text" | "voice" | "image";
+
+export async function analyseRecords(
+  records: Array<{ source_id: string; text: string; input_source?: InputSource }>,
+): Promise<AnalyseResult> {
   // Extraction — Promise.allSettled, never a sequential loop. A rejection becomes an
   // unparseable record rather than killing the batch.
   const settled = await Promise.allSettled(records.map((r) => extractOne(r.source_id, r.text)));
@@ -71,8 +75,10 @@ export async function analyseRecords(records: Array<{ source_id: string; text: s
   const unread: string[] = [];
   let systemic: GroqError | null = null;
   settled.forEach((s, i) => {
-    if (s.status === "fulfilled" && s.value) extracted.push(s.value);
-    else {
+    if (s.status === "fulfilled" && s.value) {
+      const src = records[i]!.input_source;
+      extracted.push(src ? { ...s.value, input_source: src } : s.value);
+    } else {
       unread.push(records[i]!.source_id);
       if (s.status === "rejected" && s.reason instanceof GroqError) systemic = s.reason;
     }

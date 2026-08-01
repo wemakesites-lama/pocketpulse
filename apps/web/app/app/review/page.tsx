@@ -3,16 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Download, FileText } from "lucide-react";
 import { formatZAR, canApprove, batchTotals, type LedgerRow, type LedgerState } from "@pocketpulse/core";
 import { useLedger } from "@/components/ledger-provider";
 import { FlagChip, NullChip } from "@/components/flag-chip";
 import { EvidenceDrawer } from "@/components/evidence-drawer";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export default function ReviewPage() {
   const router = useRouter();
   const { state, dispatch } = useLedger();
   const [drawer, setDrawer] = useState<LedgerRow | null>(null);
-  const [undo, setUndo] = useState<{ snapshot: LedgerState; label: string } | null>(null);
   const [showClean, setShowClean] = useState(false);
 
   const rows = state.rows;
@@ -23,9 +28,9 @@ export default function ReviewPage() {
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Add some receipts or try a sample to see the reviewed ledger.
         </p>
-        <Link href="/app/add" className="mt-6 inline-block rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground">
-          Add receipts
-        </Link>
+        <Button asChild size="lg" className="mt-6 rounded-full">
+          <Link href="/app/add">Add receipts</Link>
+        </Button>
       </section>
     );
   }
@@ -40,9 +45,15 @@ export default function ReviewPage() {
   const totals = batchTotals(rows);
 
   function removeRow(row: LedgerRow) {
-    setUndo({ snapshot: state, label: `Receipt removed · expenses down ${formatZAR(row.stated_total ?? 0)}` });
+    const snapshot: LedgerState = state;
     dispatch({ type: "REMOVE_ROW", sourceId: row.source_id });
-    window.setTimeout(() => setUndo(null), 6000);
+    toast(`Receipt removed · expenses down ${formatZAR(row.stated_total ?? 0)}`, {
+      duration: 6000,
+      action: {
+        label: "Undo",
+        onClick: () => dispatch({ type: "HYDRATE", state: snapshot }),
+      },
+    });
   }
 
   function approveAll() {
@@ -55,12 +66,17 @@ export default function ReviewPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Review</h1>
-          {state.batchSummary && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{state.batchSummary}</p>}
+          {state.batchSummary && (
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{state.batchSummary}</p>
+          )}
         </div>
-        <div className="text-right text-sm text-muted-foreground">
-          <div>{rows.length} receipts · {formatZAR(totals.gross_total)}</div>
+        <div className="text-sm text-muted-foreground sm:text-right">
+          <div className="tabular-nums">
+            {rows.length} receipts · {formatZAR(totals.gross_total)}
+          </div>
           <div>
-            VAT you could lose <span className="font-semibold text-destructive">{formatZAR(totals.vat_at_risk)}</span>
+            VAT you could lose{" "}
+            <span className="font-semibold tabular-nums text-destructive">{formatZAR(totals.vat_at_risk)}</span>
           </div>
         </div>
       </div>
@@ -77,7 +93,8 @@ export default function ReviewPage() {
         <div className="mt-4">
           <button
             onClick={() => setShowClean((v) => !v)}
-            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm font-medium hover:bg-secondary"
+            aria-expanded={showClean}
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm font-medium shadow-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {clean.length} are fine {showClean ? "· hide" : "· show"}
           </button>
@@ -91,41 +108,25 @@ export default function ReviewPage() {
         </div>
       )}
 
-      {/* Approve bar */}
-      <div className="sticky bottom-4 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+      {/* Approve bar — sits above the mobile bottom nav (bottom-24), flush on desktop. */}
+      <Card className="sticky bottom-24 z-30 mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between md:bottom-4">
         <div className="text-sm text-muted-foreground">
           {rows.length} receipts · {clean.length} fine · {attention.length} need attention
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => downloadCsv(rows)} className="rounded-full border border-border px-4 py-2 text-sm font-medium">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button variant="outline" onClick={() => downloadCsv(rows)} className="rounded-full">
+            <Download className="h-4 w-4" />
             Download for my bookkeeper
-          </button>
-          <button
-            onClick={approveAll}
-            disabled={!approvable}
-            className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {approvable ? "Approve all" : `Sort out ${highUnresolved} serious ${highUnresolved === 1 ? "one" : "ones"} first`}
-          </button>
+          </Button>
+          <Button onClick={approveAll} disabled={!approvable} className="rounded-full">
+            {approvable
+              ? "Approve all"
+              : `Sort out ${highUnresolved} serious ${highUnresolved === 1 ? "one" : "ones"} first`}
+          </Button>
         </div>
-      </div>
+      </Card>
 
       <EvidenceDrawer row={drawer} onClose={() => setDrawer(null)} />
-
-      {undo && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full bg-foreground px-5 py-3 text-sm text-background shadow-lg">
-          <span>{undo.label}</span>
-          <button
-            onClick={() => {
-              dispatch({ type: "HYDRATE", state: undo.snapshot });
-              setUndo(null);
-            }}
-            className="font-semibold underline"
-          >
-            Undo
-          </button>
-        </div>
-      )}
     </section>
   );
 }
@@ -148,17 +149,20 @@ function RowCard({
   const dismissable = open.find((f) => f.code === "unusual_amount");
 
   return (
-    <div className={`rounded-2xl border bg-card p-4 ${isDup ? "border-l-4 border-l-destructive border-border" : "border-border"}`}>
+    <Card className={cn("p-4", isDup && "border-l-4 border-l-destructive")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="font-semibold">{row.merchant ?? <NullChip label="No shop name" />}</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            {row.date ?? <NullChip label="Not found" />} · {row.category.replace(/_/g, " ")}
-            {isDup && <span className="ml-2 font-mono text-[10px] uppercase text-destructive">matching pair</span>}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            <span>{row.date ?? <NullChip label="Not found" />}</span>
+            <span>· {row.category.replace(/_/g, " ")}</span>
+            {isDup && <span className="font-mono text-[10px] uppercase text-destructive">matching pair</span>}
           </div>
         </div>
         <div className="text-right">
-          <div className="font-semibold">{row.stated_total !== null ? formatZAR(row.stated_total) : "—"}</div>
+          <div className="font-semibold tabular-nums">
+            {row.stated_total !== null ? formatZAR(row.stated_total) : "—"}
+          </div>
           <div className="text-xs text-muted-foreground">
             VAT {row.computed_vat !== null ? formatZAR(row.computed_vat) : <NullChip label="Not confirmed" />}
           </div>
@@ -187,12 +191,14 @@ function RowCard({
           />
         )}
         {isDup && (
-          <button onClick={onRemove} className="rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground">
+          <Button variant="destructive" size="sm" onClick={onRemove} className="rounded-full">
             Remove this copy
-          </button>
+          </Button>
         )}
         {dismissable && (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() =>
               dispatch({
                 type: "RESOLVE_FLAG",
@@ -201,16 +207,17 @@ function RowCard({
                 resolution: "Planned purchase, approved.",
               })
             }
-            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium"
+            className="rounded-full"
           >
             Planned purchase — approve
-          </button>
+          </Button>
         )}
-        <button onClick={onSlip} className="rounded-full border border-border px-3 py-1.5 text-xs font-medium">
+        <Button variant="ghost" size="sm" onClick={onSlip} className="rounded-full">
+          <FileText className="h-4 w-4" />
           Slip
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -218,17 +225,18 @@ function InlineNumber({ label, initial, onSave }: { label: string; initial: numb
   const [v, setV] = useState(String(initial));
   return (
     <div className="flex items-center gap-1">
-      <input
+      <Input
         type="number"
         step="0.01"
+        inputMode="decimal"
         value={v}
         onChange={(e) => setV(e.target.value)}
-        className="h-8 w-24 rounded-lg border border-input bg-background px-2 text-sm"
+        className="h-9 w-24"
         aria-label={label}
       />
-      <button onClick={() => onSave(Number(v))} className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+      <Button size="sm" onClick={() => onSave(Number(v))} className="rounded-full">
         {label}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -237,19 +245,10 @@ function InlineDate({ onSave }: { onSave: (v: string) => void }) {
   const [v, setV] = useState("");
   return (
     <div className="flex items-center gap-1">
-      <input
-        type="date"
-        value={v}
-        onChange={(e) => setV(e.target.value)}
-        className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
-        aria-label="Add the date"
-      />
-      <button
-        onClick={() => v && onSave(v)}
-        className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-      >
+      <Input type="date" value={v} onChange={(e) => setV(e.target.value)} className="h-9 w-auto" aria-label="Add the date" />
+      <Button size="sm" onClick={() => v && onSave(v)} className="rounded-full">
         Add the date
-      </button>
+      </Button>
     </div>
   );
 }

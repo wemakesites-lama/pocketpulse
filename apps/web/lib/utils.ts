@@ -1,5 +1,8 @@
-// Minimal cn() helper. shadcn's init will overwrite this with its cva-aware version
-// once components are added (build step 1 / design system).
-export function cn(...classes: Array<string | false | null | undefined>): string {
-  return classes.filter(Boolean).join(" ");
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// cn() — merge conditional class lists and resolve Tailwind conflicts (last wins).
+// Used by every shadcn/ui primitive in components/ui.
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }

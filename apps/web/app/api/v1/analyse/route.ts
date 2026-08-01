@@ -20,13 +20,17 @@ export function OPTIONS() {
   return cors(new NextResponse(null, { status: 204 }));
 }
 
-type IncomingRecord = string | { source_id?: string; text?: string; raw?: string };
+type InputSource = "text" | "voice" | "image";
+type IncomingRecord =
+  | string
+  | { source_id?: string; text?: string; raw?: string; input_source?: InputSource };
 
-function normalise(records: IncomingRecord[]): Array<{ source_id: string; text: string }> {
+function normalise(records: IncomingRecord[]): Array<{ source_id: string; text: string; input_source?: InputSource }> {
   return records
     .map((r, i) => {
-      if (typeof r === "string") return { source_id: `R-${String(i + 1).padStart(3, "0")}`, text: r };
-      return { source_id: r.source_id ?? `R-${String(i + 1).padStart(3, "0")}`, text: r.text ?? r.raw ?? "" };
+      const id = `R-${String(i + 1).padStart(3, "0")}`;
+      if (typeof r === "string") return { source_id: id, text: r };
+      return { source_id: r.source_id ?? id, text: r.text ?? r.raw ?? "", input_source: r.input_source };
     })
     .filter((r) => r.text.trim().length > 0);
 }

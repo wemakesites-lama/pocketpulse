@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Download, Code2 } from "lucide-react";
 import { formatZAR, batchTotals, vatPosition, DISCLAIMER, type LedgerRow } from "@pocketpulse/core";
 import { useLedger } from "@/components/ledger-provider";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 // 11.7 Approved record. Plain-English summary, stat list, raw ApprovedBatch JSON toggle, CSV.
 export default function ApprovedPage() {
@@ -19,9 +22,9 @@ export default function ApprovedPage() {
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Review your receipts and approve them to see the final record here.
         </p>
-        <Link href="/app/review" className="mt-6 inline-block rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground">
-          Go to review
-        </Link>
+        <Button asChild size="lg" className="mt-6 rounded-full">
+          <Link href="/app/review">Go to review</Link>
+        </Button>
       </section>
     );
   }
@@ -46,24 +49,26 @@ export default function ApprovedPage() {
           ["VAT still at risk", formatZAR(pos.atRisk)],
           ["Going out monthly", formatZAR(record.recurring.reduce((s, r) => s + r.monthly, 0))],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-3xl border border-border bg-card p-5">
+          <Card key={label} className="p-5">
             <div className="text-sm text-muted-foreground">{label}</div>
-            <div className="mt-1 text-2xl font-extrabold">{value}</div>
-          </div>
+            <div className="mt-1 text-2xl font-extrabold tabular-nums">{value}</div>
+          </Card>
         ))}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        <button onClick={() => downloadCsv(approved)} className="rounded-full border border-border px-4 py-2 text-sm font-medium">
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Button variant="outline" onClick={() => downloadCsv(approved)} className="rounded-full">
+          <Download className="h-4 w-4" />
           Download for my bookkeeper
-        </button>
-        <button onClick={() => setShowRaw((v) => !v)} className="rounded-full border border-border px-4 py-2 text-sm font-medium">
+        </Button>
+        <Button variant="outline" onClick={() => setShowRaw((v) => !v)} className="rounded-full">
+          <Code2 className="h-4 w-4" />
           {showRaw ? "Hide the raw record" : "View the raw record"}
-        </button>
+        </Button>
       </div>
 
       {showRaw && (
-        <pre className="mt-4 overflow-x-auto rounded-2xl bg-[color:var(--slip-dark)] p-4 font-mono text-xs text-[#E6E8EC]">
+        <pre className="mt-4 overflow-x-auto rounded-xl bg-[color:var(--slip-dark)] p-4 font-mono text-xs text-[#E6E8EC]">
           {JSON.stringify(record, null, 2)}
         </pre>
       )}

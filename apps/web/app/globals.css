@@ -40,6 +40,45 @@
     --amber-pale: #faefda;
     --slip-dark: #171a21; /* rendered receipt slip background */
   }
+
+  /* Dark theme — warm deep-ink ground (not pure black), so the brand stays warm.
+     Functional colours are lifted for AA contrast on the dark surface; the same
+     "colour only where money is at stake" discipline applies. */
+  .dark {
+    --background: 225 16% 8%; /* deep ink #101219 */
+    --foreground: 40 26% 92%; /* warm off-white #F0ECE4 */
+    --card: 225 14% 12%; /* raised surface #1A1D26 */
+    --card-foreground: 40 26% 92%;
+    --popover: 225 14% 12%;
+    --popover-foreground: 40 26% 92%;
+    --primary: 224 84% 64%; /* lifted blue #5B83F0 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 12% 17%; /* tile #262A34 */
+    --secondary-foreground: 40 26% 92%;
+    --muted: 225 12% 17%;
+    --muted-foreground: 227 12% 66%; /* #9BA0AE */
+    --accent: 224 44% 22%; /* blue-dark pale #1F2E52 */
+    --accent-foreground: 224 82% 84%;
+    --destructive: 8 72% 60%; /* red #E06450 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 62% 46%; /* green #2CBF8F */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 78% 60%; /* amber #E6A93F */
+    --warning-foreground: 38 40% 10%; /* dark text on amber for contrast */
+    --border: 225 12% 20%; /* #2C3038 */
+    --input: 225 12% 24%;
+    --ring: 224 84% 64%;
+
+    /* Gradient/chart stops re-tuned for the dark ground. */
+    --blue-dk: #2a4fc7;
+    --blue-2: #5b83f0;
+    --blue-mid: #7fa9f8;
+    --blue-lt: #9db8f5;
+    --green-pale: #12321f;
+    --red-pale: #3a1c18;
+    --amber-pale: #3a2c12;
+    --slip-dark: #0c0e13; /* slip sits below card in dark */
+  }
 }
 
 @layer base {
@@ -50,6 +89,13 @@
     @apply bg-background text-foreground;
     /* 3.4 Non-negotiable in a financial grid. */
     font-variant-numeric: tabular-nums;
+  }
+  /* Native controls (date picker, scrollbars, autofill) follow the theme. */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
   }
 }
 
