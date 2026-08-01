@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { formatZAR, type LedgerRow } from "@pocketpulse/core";
 import { FlagChip } from "./flag-chip";
+import { getSupabase } from "@/lib/supabase.client";
+import { signedSlipUrl } from "@/lib/slips.client";
 import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
@@ -93,8 +95,28 @@ export function EvidenceDrawer({ row, onClose }: { row: LedgerRow | null; onClos
   );
 }
 
+// Fetch a short-lived signed URL for the saved slip photo, if this row has one. Runs
+// only when the drawer opens for an image-sourced row; null keeps the fallback slip.
+function useSlipImage(path: string | null | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setUrl(null);
+    const sb = getSupabase();
+    if (!path || !sb) return;
+    let live = true;
+    signedSlipUrl(sb, path).then((u) => {
+      if (live) setUrl(u);
+    });
+    return () => {
+      live = false;
+    };
+  }, [path]);
+  return url;
+}
+
 function DrawerBody({ row }: { row: LedgerRow }) {
   const openFlags = row.flags.filter((f) => !f.resolved);
+  const photoUrl = useSlipImage(row.image_path);
   return (
     <>
       <SheetHeader className="space-y-1 text-left">
@@ -104,6 +126,15 @@ function DrawerBody({ row }: { row: LedgerRow }) {
         </SheetTitle>
         <SheetDescription className="sr-only">Receipt evidence and computed facts</SheetDescription>
       </SheetHeader>
+
+      {photoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, not a static asset
+        <img
+          src={photoUrl}
+          alt={`Scanned slip for ${row.merchant ?? "this receipt"}`}
+          className="mt-4 max-h-80 w-full rounded-2xl border border-border object-contain"
+        />
+      )}
 
       <pre className="mt-4 overflow-x-auto rounded-2xl bg-[color:var(--slip-dark)] p-4 font-mono text-xs leading-relaxed text-[#E6E8EC]">
         {slip(row)}

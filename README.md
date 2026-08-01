@@ -119,7 +119,9 @@ The loop from H back to E is the human in the loop.
 - Outlier detection needs five or more records and is suppressed below that.
 - Category assignment is a model judgement and will sometimes need correction.
 - Input is text, photo or voice. Photo scanning runs OCR **in the browser** (Tesseract.js,
-  printed **English** only — the image never leaves the device); voice is transcribed via
+  printed **English** only); when signed in, the original photo is then uploaded to a
+  **private per-user Supabase Storage bucket** (`slips`, RLS-scoped) so the slip is
+  retrievable from its ledger row via a short-lived signed URL. Voice is transcribed via
   Groq Whisper. No PDF import.
 - VAT logic assumes the 15% standard rate; no zero-rated or exempt supplies.
 - Recurrence is read from what documents state; with one month of data we cannot detect

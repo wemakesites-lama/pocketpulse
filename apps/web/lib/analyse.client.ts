@@ -114,19 +114,35 @@ export async function analyseVoice(transcript: string): Promise<AnalyseOutcome> 
   }
 }
 
-// Photo scan: OCR each image IN THE BROWSER (image never leaves the device), then send
-// the recognised text — one record per image — through the same extraction+rules pipeline.
+// Photo scan: OCR each image IN THE BROWSER, then send the recognised text — one record
+// per image — through the same extraction+rules pipeline. When signed in, the original
+// photo is also uploaded to the private `slips` bucket and its path re-attached to the
+// matching ledger row (by source_id) so the slip is retrievable later.
 export async function scanImages(
   files: File[],
   onProgress?: (index: number, total: number, fraction: number) => void,
 ): Promise<AnalyseOutcome> {
   const { ocrImage } = await import("./ocr.client");
+  const { getSupabase } = await import("./supabase.client");
+  const { uploadSlip } = await import("./slips.client");
+
+  const sb = getSupabase();
+  const uid = sb ? (await sb.auth.getUser()).data.user?.id ?? null : null;
+
   const records: Array<{ source_id: string; text: string; input_source: "image" }> = [];
+  const pathBySource = new Map<string, string>();
   for (let i = 0; i < files.length; i++) {
+    const file = files[i]!;
+    const sourceId = `IMG-${String(i + 1).padStart(3, "0")}`;
     try {
-      const text = await ocrImage(files[i]!, (f) => onProgress?.(i, files.length, f));
+      const text = await ocrImage(file, (f) => onProgress?.(i, files.length, f));
       if (text.trim().length > 10) {
-        records.push({ source_id: `IMG-${String(i + 1).padStart(3, "0")}`, text, input_source: "image" });
+        records.push({ source_id: sourceId, text, input_source: "image" });
+        // Keep the original photo (best effort). Failure here never blocks the analysis.
+        if (sb && uid) {
+          const path = await uploadSlip(sb, uid, file, sourceId);
+          if (path) pathBySource.set(sourceId, path);
+        }
       }
     } catch {
       /* skip an unreadable image; reported via the empty-records path below */
@@ -143,7 +159,14 @@ export async function scanImages(
     };
   }
   try {
-    return await postAnalyse({ records });
+    const out = await postAnalyse({ records });
+    if (out.ok && pathBySource.size > 0) {
+      out.data.ledger = out.data.ledger.map((r) => {
+        const path = pathBySource.get(r.source_id);
+        return path ? { ...r, image_path: path } : r;
+      });
+    }
+    return out;
   } catch {
     return { ok: false, error: { kind: "provider_unreachable", message: "Could not reach the analyser.", retryable: true } };
   }

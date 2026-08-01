@@ -135,7 +135,8 @@ export default function AddPage() {
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         Snap a photo, paste the text, or try one of our examples. Nothing happens until you
         act. We read each receipt, work out the VAT ourselves, and show you anything that
-        looks wrong. Nothing is filed or sent anywhere.
+        looks wrong. Photos you scan are saved securely to your own account so you can
+        view the original slip later — we never file or submit anything on your behalf.
       </p>
 
       {busy && (
@@ -148,7 +149,7 @@ export default function AddPage() {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             {scanPct !== null
-              ? "Recognising the text on your device — the photo never leaves your phone."
+              ? "Recognising the text on your device, then saving the photo to your account."
               : "Working out the VAT and checking the paperwork on your device."}
           </p>
         </Card>
@@ -191,8 +192,8 @@ export default function AddPage() {
               <div>
                 <div className="font-semibold">Scan a receipt photo</div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  We read the text on your device and check it like any other receipt. Clear,
-                  well-lit, straight-on photos work best.
+                  We read the text on your device, then save the photo to your account so you can
+                  pull up the original slip any time. Clear, well-lit, straight-on photos work best.
                 </p>
               </div>
             </div>

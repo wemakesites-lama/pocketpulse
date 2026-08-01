@@ -156,6 +156,10 @@ export const LedgerRow = ExtractedTransaction.extend({
   display_confidence: z.enum(CONFIDENCE),
   edited_fields: z.array(z.string()).default([]),
   approved: z.boolean().default(false),
+  // Bucket-relative path of the uploaded slip photo in the private `slips` storage bucket
+  // (only set for input_source "image", and only when signed in). Retrieved via a signed
+  // URL. Optional so text/voice rows and the frozen extraction shape are unaffected.
+  image_path: z.string().nullable().optional(),
 });
 export type LedgerRow = z.infer<typeof LedgerRow>;
 
