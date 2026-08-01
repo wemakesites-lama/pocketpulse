@@ -15,9 +15,12 @@ which of their input VAT their paperwork will not support.
 
 ## Status
 
-🚧 **Scaffold.** Monorepo structure, config, theme, the frozen data contract (schemas),
-VAT arithmetic, the synthetic data pack and both AI prompts are in place. Feature surfaces
-(review ledger, overview, charts, API wiring) are stubbed and tracked in [PLAN.md](./PLAN.md).
+✅ **Working MVP.** End-to-end flow builds and runs: demo sign-in → add/sample receipts →
+AI extraction (Groq) + deterministic rules engine → editable review ledger with live
+recompute, evidence drawer, duplicate handling and approval gating → overview, paperwork,
+repeating and approved screens → CSV export. Core rules engine: **34 tests passing**,
+reproducing every §7.4 figure. Built-in samples run the rules engine in-browser, so the
+demo works even without an API key. Remaining polish is tracked in [PLAN.md](./PLAN.md).
 
 ## How to run
 
@@ -29,6 +32,28 @@ cp apps/web/.env.example apps/web/.env.local                # then fill in GROQ_
 pnpm dev                                                     # http://localhost:3000
 pnpm test                                                    # rules-engine tests (packages/core)
 ```
+
+## Deploy (Vercel, from this monorepo)
+
+Repo: <https://github.com/wemakesites-lama/pocketpulse>
+
+1. <https://vercel.com/new> → **Import** the `pocketpulse` repo.
+2. **Root Directory:** `apps/web`.
+3. Expand **Root Directory** settings → turn **ON** "Include files outside of the Root
+   Directory in the Build Step" (without this, `packages/core` is not uploaded and the
+   build fails on the first core import).
+4. Framework preset: **Next.js** (auto). Install/Build commands: **auto** (Vercel detects
+   pnpm workspaces).
+5. **Environment Variables** (Production + Preview) — optional; the built-in samples run
+   the rules engine in-browser and work without any key. Needed only for the paste path:
+   - `GROQ_API_KEY` = your key
+   - `GROQ_MODEL` = the exact production model id from `/models` (e.g. `llama-3.3-70b-versatile`)
+   - `GROQ_BASE_URL` = `https://api.groq.com/openai/v1`
+   - `APP_ORIGIN` = your deployed origin (locks CORS in production)
+6. **Deploy.**
+
+_Alternative for hosts that can't build a pnpm workspace:_ `bash scripts/make-standalone.sh`
+produces a self-contained Next app (core folded in, imports unchanged) you can deploy directly.
 
 ## AI provider
 
