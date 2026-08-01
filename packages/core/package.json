@@ -12,5 +12,5 @@
   },
   "scripts": { "test": "vitest run" },
   "dependencies": { "zod": "^3" },
-  "devDependencies": { "vitest": "^2", "typescript": "^5" }
+  "devDependencies": { "vitest": "^3.2.6", "typescript": "^5" }
 }
