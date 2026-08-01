@@ -122,8 +122,13 @@ The loop from H back to E is the human in the loop.
 - VAT logic assumes the 15% standard rate; no zero-rated or exempt supplies.
 - Recurrence is read from what documents state; with one month of data we cannot detect
   double-billing across months.
-- Sign-in is a demonstration gate with no backend; no authentication was built. The
-  buildathon guidelines do not require authentication and we did not build any.
+- **Auth & persistence (added beyond the buildathon spec, at the owner's request):**
+  sign-in is passwordless **email OTP via Supabase**, and each user's batches persist in a
+  Postgres `batches` table (RLS-protected) instead of `localStorage`. On the Supabase free
+  tier with the default email provider the message delivers a **magic link** (click to sign
+  in); a true **6-digit code** needs custom SMTP (e.g. Resend) — the login UI supports both.
+  Built-in sample analysis still runs in-browser and works without any key. If a Supabase
+  env is absent, the app falls back to the localStorage demo gate.
 
 ---
 
