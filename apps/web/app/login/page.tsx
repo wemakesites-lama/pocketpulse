@@ -45,7 +45,7 @@ export default function LoginPage() {
     setBusy(false);
     if (error) return setError(error.message);
     setStep("code");
-    setNotice("We emailed you a sign-in code. Enter it below, or click the link in the email.");
+    setNotice("We emailed you an 8-digit sign-in code. Enter it below — it expires in 1 hour.");
   }
 
   async function verify(e: React.FormEvent) {
@@ -104,10 +104,11 @@ export default function LoginPage() {
                     id="code"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    placeholder="6-digit code"
+                    maxLength={8}
+                    placeholder="8-digit code"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="text-center font-mono text-lg tracking-[0.4em]"
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    className="text-center font-mono text-lg tracking-[0.3em]"
                   />
                 </div>
                 <Button type="submit" disabled={busy} className="w-full">
