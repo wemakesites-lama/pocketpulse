@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BATCHES } from "@pocketpulse/core";
-import { Loader2, ArrowRight, Camera } from "lucide-react";
+import { Loader2, ArrowRight, Camera, Mic, Square } from "lucide-react";
 import { useLedger } from "@/components/ledger-provider";
-import { analyseSample, analysePaste, scanImages } from "@/lib/analyse.client";
+import { analyseSample, analysePaste, analyseVoice, transcribeAudio, scanImages } from "@/lib/analyse.client";
+import { startRecording, isRecordingSupported, type Recorder } from "@/lib/record.client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,73 @@ export default function AddPage() {
   const [scanPct, setScanPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Speak a receipt (STT). Record → transcribe → edit → check.
+  const [micReady, setMicReady] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const recorderRef = useRef<Recorder | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setMicReady(isRecordingSupported());
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      recorderRef.current?.cancel();
+    };
+  }, []);
+
+  async function toggleRecord() {
+    if (recording) {
+      // Stop → transcribe.
+      if (timerRef.current) clearInterval(timerRef.current);
+      const rec = recorderRef.current;
+      recorderRef.current = null;
+      setRecording(false);
+      if (!rec) return;
+      setTranscribing(true);
+      try {
+        const audio = await rec.stop();
+        const out = await transcribeAudio(audio);
+        if (out.ok) {
+          setTranscript((prev) => (prev ? `${prev.trim()} ${out.text}` : out.text));
+        } else {
+          setError(out.error.message);
+        }
+      } catch {
+        setError("We couldn't finish the recording. Please try again.");
+      } finally {
+        setTranscribing(false);
+      }
+      return;
+    }
+    // Start.
+    setError(null);
+    try {
+      recorderRef.current = await startRecording();
+      setRecording(true);
+      setSeconds(0);
+      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+    } catch {
+      setError("We couldn't reach your microphone. Check that your browser has permission to use it.");
+    }
+  }
+
+  async function runVoice() {
+    if (!transcript.trim()) return setError("Say or type a receipt first, then check it.");
+    setError(null);
+    setBusy("your spoken receipt");
+    const out = await analyseVoice(transcript);
+    if (out.ok) {
+      load(out.data);
+      router.push("/app/review");
+    } else {
+      setBusy(null);
+      setError(out.error.message);
+    }
+  }
 
   async function runSample(id: "A" | "B" | "C", label: string) {
     setError(null);
@@ -132,6 +200,82 @@ export default function AddPage() {
               Take / choose photo
             </Button>
           </Card>
+
+          {/* Speak a receipt (STT) */}
+          {micReady && (
+            <Card className="mt-6 p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Mic className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Speak a receipt</div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Read it out — merchant, date, total and VAT — in English, Afrikaans or
+                      isiZulu. We transcribe the words and check it like any other receipt.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={toggleRecord}
+                  disabled={transcribing}
+                  variant={recording ? "destructive" : "outline"}
+                  className="rounded-full sm:shrink-0"
+                  aria-live="polite"
+                >
+                  {transcribing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Transcribing…
+                    </>
+                  ) : recording ? (
+                    <>
+                      <Square className="mr-2 h-4 w-4 fill-current" />
+                      Stop ({seconds}s)
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-4 w-4" />
+                      Start recording
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {recording && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                  Listening… tap stop when you&apos;re done.
+                </div>
+              )}
+
+              {(transcript || transcribing) && (
+                <div className="mt-4">
+                  <Textarea
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    rows={4}
+                    placeholder="Your spoken receipt will appear here — edit anything we misheard before checking."
+                    className="resize-y text-sm"
+                    aria-label="Transcript"
+                  />
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Check what we heard — you can fix any words before checking.
+                    </span>
+                    <Button
+                      onClick={runVoice}
+                      disabled={recording || transcribing || !transcript.trim()}
+                      className="w-full rounded-full sm:w-auto"
+                    >
+                      Check this receipt
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Paste */}
           <Card className="mt-6 p-4">

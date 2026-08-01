@@ -75,6 +75,45 @@ export async function analysePaste(text: string): Promise<AnalyseOutcome> {
   }
 }
 
+export type TranscribeOutcome =
+  | { ok: true; text: string }
+  | { ok: false; error: { kind: string; message: string; retryable: boolean } };
+
+function extForMime(mime: string): string {
+  if (mime.includes("mp4")) return "m4a";
+  if (mime.includes("ogg")) return "ogg";
+  if (mime.includes("wav")) return "wav";
+  return "webm";
+}
+
+// Speech-to-text: sends the recorded audio to the server, which forwards it to Whisper.
+// Returns the raw transcript so the user can read and edit it before checking.
+export async function transcribeAudio(audio: Blob): Promise<TranscribeOutcome> {
+  const form = new FormData();
+  form.append("audio", audio, `receipt.${extForMime(audio.type)}`);
+  try {
+    const res = await fetch("/api/v1/transcribe", { method: "POST", body: form });
+    const out = (await res.json()) as
+      | { ok: true; data: { text: string } }
+      | { ok: false; error: { kind: string; message: string; retryable: boolean } };
+    return out.ok ? { ok: true, text: out.data.text } : out;
+  } catch {
+    return { ok: false, error: { kind: "provider_unreachable", message: "Could not reach the transcriber.", retryable: true } };
+  }
+}
+
+// Spoken receipt: the transcript goes through the same extraction+rules pipeline as text,
+// tagged input_source "voice" so the ledger records how it came in.
+export async function analyseVoice(transcript: string): Promise<AnalyseOutcome> {
+  try {
+    return await postAnalyse({
+      records: [{ source_id: "VOICE-001", text: transcript, input_source: "voice" }],
+    });
+  } catch {
+    return { ok: false, error: { kind: "provider_unreachable", message: "Could not reach the analyser.", retryable: true } };
+  }
+}
+
 // Photo scan: OCR each image IN THE BROWSER (image never leaves the device), then send
 // the recognised text — one record per image — through the same extraction+rules pipeline.
 export async function scanImages(
