@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3.2 Theme — cream ground, ink text, blue structure, colour only where money is at stake. */
+@layer base {
+  :root {
+    --background: 38 44% 96%; /* cream #FAF7F2 */
+    --foreground: 225 17% 9%; /* ink #14161C */
+    --card: 0 0% 100%;
+    --card-foreground: 225 17% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 17% 9%;
+    --primary: 224 80% 55%; /* blue #2E5FE8 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 43 24% 94%; /* tile #F4F2ED */
+    --secondary-foreground: 225 17% 9%;
+    --muted: 43 24% 94%;
+    --muted-foreground: 227 8% 47%; /* #6E7280 */
+    --accent: 224 80% 95%; /* blue-pale #E4EDFE */
+    --accent-foreground: 224 80% 40%;
+    --destructive: 8 63% 54%; /* red #D4523F */
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 34%; /* green #0E9F6E */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 73% 45%; /* amber #C4881F */
+    --warning-foreground: 0 0% 100%;
+    --border: 38 21% 90%; /* #EAE6DF */
+    --input: 38 21% 90%;
+    --ring: 224 80% 55%;
+    --radius: 0.75rem;
+
+    /* 3.2 Additional raw values used in gradients and charts (hex, for gradient stops). */
+    --blue-dk: #1d42b8;
+    --blue-2: #4b87f5;
+    --blue-mid: #7fa9f8;
+    --blue-lt: #b9d0fb;
+    --green-pale: #dcf3e9;
+    --red-pale: #fbe7e2;
+    --amber-pale: #faefda;
+    --slip-dark: #171a21; /* rendered receipt slip background */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* 3.4 Non-negotiable in a financial grid. */
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* PART 12 — prefers-reduced-motion zeroes animations and forces final states. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

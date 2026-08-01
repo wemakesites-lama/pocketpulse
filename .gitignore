@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+apps/web/.next/
+apps/web/out/
+apps/web/next-env.d.ts
+
+# env — never commit real keys
+.env
+.env.local
+.env*.local
+
+# build / test output
+dist/
+coverage/
+
+# misc
+.DS_Store
+*.log
+.vercel
+.turbo
+
+# generated standalone deploy bundle (scripts/make-standalone.sh)
+.standalone/
