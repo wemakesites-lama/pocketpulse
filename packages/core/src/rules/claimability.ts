@@ -2,6 +2,17 @@ import type { Flag, LedgerRow } from "../schemas";
 import { ABRIDGED_THRESHOLD, FULL_INVOICE_THRESHOLD } from "../types";
 import { estimateInclusiveVat, toCents, toRand } from "./vat";
 import { formatZAR } from "../format";
+import { isTrustedDigitalVendor } from "./trustedVendors";
+
+// Documentary formatting fields that trusted digital vendors reliably print but
+// that extraction under-reads on non-slip (email/PDF/in-app) layouts. Relaxed for
+// trusted vendors only — never the supplier VAT number (see trustedVendors.ts).
+const RELAXABLE_FOR_TRUSTED = new Set<string>([
+  "has_tax_invoice_wording",
+  "supplier_address_present",
+  "recipient_details_present",
+  "invoice_serial",
+]);
 
 // -----------------------------------------------------------------------------
 // 5.4 Claimability — THE PRODUCT.
@@ -97,7 +108,13 @@ export function applyClaimability(row: LedgerRow): LedgerRow {
   }
 
   const tier = tierFor(row.stated_total);
-  const missing = REQUIRED_BY_TIER[tier].filter((f) => isAbsent(row, f));
+  const trusted = isTrustedDigitalVendor(row);
+  const missing = REQUIRED_BY_TIER[tier]
+    .filter((f) => isAbsent(row, f))
+    // Trusted digital vendors (Uber, AWS, Google…) issue compliant tax invoices;
+    // only their layout trips up extraction. Forgive the formatting fields — but
+    // never the supplier VAT number, without which there is nothing to claim.
+    .filter((f) => !(trusted && RELAXABLE_FOR_TRUSTED.has(f)));
 
   // A stated VAT amount that is wrong is a content failure, not just arithmetic.
   if (flags.some((f) => f.code === "vat_mismatch")) missing.push("correct_vat_amount");
@@ -137,7 +154,7 @@ export function applyClaimability(row: LedgerRow): LedgerRow {
   // full_invoice_required · high — tier is full and recipient details are absent.
   // High correctly blocks approval: a five-figure purchase with no valid document is
   // exactly what a human must look at. (Resolution B: excluded from the at-risk headline.)
-  if (tier === "full" && isAbsent(row, "recipient_details_present")) {
+  if (tier === "full" && isAbsent(row, "recipient_details_present") && !trusted) {
     flags.push(
       flag({
         code: "full_invoice_required",

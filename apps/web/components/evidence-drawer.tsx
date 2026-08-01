@@ -180,7 +180,7 @@ function prettyField(f: string): string {
     date: "a readable date",
     supplier_vat_number: "a supplier VAT number",
     invoice_serial: "an invoice number",
-    has_tax_invoice_wording: "the words “Tax Invoice”",
+    has_tax_invoice_wording: "a “Tax Invoice” or “Invoice” heading",
     supplier_address_present: "a supplier address",
     description_present: "a description of what was bought",
     recipient_details_present: "your own business details",

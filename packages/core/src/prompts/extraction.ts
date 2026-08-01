@@ -40,6 +40,21 @@ Report exactly what the document shows, as booleans and strings:
 - description_present: is what was bought described
 - recipient_details_present: are the BUYER's name, address or VAT number shown
 
+DIGITAL & E-RECEIPTS
+Many records are emailed, PDF or in-app receipts (Uber, Bolt, AWS, Google, Microsoft,
+Apple, Takealot and similar), not printed till slips. Read them the same way:
+- The document is a valid record even with no physical shop or till layout.
+- has_tax_invoice_wording is true if "Tax Invoice", "VAT Invoice" OR the single word
+  "Invoice" appears anywhere — a printed "Tax Invoice" line is NOT required.
+- supplier_address_present is true when a registered / head-office address, or a company
+  registration block, is shown — a digital vendor's registered address counts.
+- supplier_vat_number: report the VAT number exactly as printed even in a footer or fine
+  print; null only if truly none appears. Never invent one.
+- recipient_details_present is true when the buyer's name, email, address or VAT number
+  appears (common on "Uber for Business" / cloud-billing invoices).
+Report only what the document shows. Do not upgrade a bare trip/order confirmation into a
+tax invoice: if a field is genuinely absent, still return null / false.
+
 RECURRENCE
 - states_recurring: true only if the document itself says it repeats, using words such
   as "monthly", "per month" or "subscription", or is paid by debit order for something

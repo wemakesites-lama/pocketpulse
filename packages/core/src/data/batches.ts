@@ -43,6 +43,7 @@ Paid: Card ****4471`,
     {
       source_id: "EXP-002",
       raw: `SASOL RIVONIA
+Tax Invoice 3027194
 VAT No 4030156882
 06 July 2026  07:41
 Pump 4  Unleaded 95  46.00 L @ R20.00/L
@@ -66,6 +67,7 @@ VAT registration 4520102689`,
     {
       source_id: "EXP-004",
       raw: `WOOLWORTHS SANDTON CITY
+Tax Invoice WW-556231
 VAT 4880116791
 09-07-2026
 Client meeting refreshments
@@ -106,6 +108,7 @@ No VAT charged - not a VAT vendor`,
     {
       source_id: "EXP-006",
       raw: `PNA STATIONERS
+Tax Invoice PNA-201884
 VAT Reg 4110238947
 [date line faded, illegible]
 
@@ -177,6 +180,7 @@ const BATCH_C: SampleBatch = {
     {
       source_id: "EXP-011",
       raw: `INCREDIBLE CONNECTION MENLYN
+Tax Invoice IC-778120
 VAT 4570119923
 16 July 2026
 

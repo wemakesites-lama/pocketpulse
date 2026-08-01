@@ -6,7 +6,8 @@ import { batchLevelFlags } from "./checks";
 import { batchUnboundedEstimate } from "./claimability";
 import { batchTotals, vatPosition, categoryBreakdown, recurringList } from "./summarise";
 import { EXTRACTED_13, EXTRACTED_BATCH_C } from "../data/extracted.fixture";
-import type { LedgerRow } from "../schemas";
+import { isTrustedDigitalVendor } from "./trustedVendors";
+import type { ExtractedTransaction, LedgerRow } from "../schemas";
 
 // -----------------------------------------------------------------------------
 // 5.2 VAT — worked values. A judge will mentally check at least one.
@@ -167,5 +168,106 @@ describe("unusual_amount — Batch C (7.3, Resolution E)", () => {
   it("does NOT run below 5 records", () => {
     const small = recompute(EXTRACTED_13.slice(0, 4));
     expect(small.some((r) => r.flags.some((f) => f.code === "unusual_amount"))).toBe(false);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Trusted digital vendors (Uber, AWS, Google…) — relax DOCUMENTARY formatting
+// fields their e-receipts trip extraction on, but NEVER the supplier VAT number.
+// -----------------------------------------------------------------------------
+describe("trusted digital vendors", () => {
+  function tx(p: Partial<ExtractedTransaction> & Pick<ExtractedTransaction, "source_id">): ExtractedTransaction {
+    return {
+      input_source: "text",
+      merchant: null,
+      date: null,
+      description: null,
+      line_items: [],
+      stated_total: null,
+      stated_vat: null,
+      vat_status: "unknown",
+      vat_number_present: false,
+      supplier_vat_number: null,
+      supplier_address_present: false,
+      invoice_serial: null,
+      has_tax_invoice_wording: false,
+      description_present: false,
+      recipient_details_present: false,
+      states_recurring: false,
+      recurrence_evidence: null,
+      payment_method: "unknown",
+      currency: "ZAR",
+      category: "other",
+      category_rationale: "",
+      missing_fields: [],
+      clarification_questions: [],
+      extraction_confidence: "high",
+      notes: null,
+      ...p,
+    };
+  }
+
+  it("matches known vendors on whole-word boundaries, not substrings", () => {
+    expect(isTrustedDigitalVendor({ merchant: "Uber for Business" })).toBe(true);
+    expect(isTrustedDigitalVendor({ merchant: "Amazon Web Services EMEA" })).toBe(true);
+    expect(isTrustedDigitalVendor({ merchant: "Kuber Attorneys" })).toBe(false);
+    expect(isTrustedDigitalVendor({ merchant: "Bob's Hardware" })).toBe(false);
+    expect(isTrustedDigitalVendor({ merchant: null })).toBe(false);
+  });
+
+  it("a complete Uber invoice with a VAT number is claimable (no invalid_tax_invoice)", () => {
+    // >R50 (abridged tier). VAT present + inclusive; formatting fields absent as an
+    // e-receipt often extracts, but the VAT number IS present.
+    const [r] = recompute([
+      tx({
+        source_id: "T-1",
+        merchant: "Uber",
+        date: "2026-07-14",
+        stated_total: 318,
+        vat_status: "inclusive",
+        vat_number_present: true,
+        supplier_vat_number: "4123456789",
+        description_present: true,
+        // supplier_address_present / invoice_serial / has_tax_invoice_wording all false
+      }),
+    ]);
+    expect(r!.claim_status).toBe("claimable");
+    expect(r!.flags.some((f) => f.code === "invalid_tax_invoice")).toBe(false);
+    expect(r!.vat_at_risk).toBeNull();
+  });
+
+  it("a trusted-vendor slip with NO VAT number is still at_risk (safety line held)", () => {
+    const [r] = recompute([
+      tx({
+        source_id: "T-2",
+        merchant: "Uber",
+        date: "2026-07-14",
+        stated_total: 318,
+        vat_status: "unknown",
+        supplier_vat_number: null,
+        description_present: true,
+      }),
+    ]);
+    expect(r!.claim_status).toBe("at_risk");
+    expect(r!.flags.some((f) => f.code === "invalid_tax_invoice")).toBe(true);
+  });
+
+  it("a big trusted invoice does NOT trigger full_invoice_required on recipient details alone", () => {
+    const [r] = recompute([
+      tx({
+        source_id: "T-3",
+        merchant: "Amazon Web Services",
+        date: "2026-07-14",
+        stated_total: 12500,
+        vat_status: "inclusive",
+        vat_number_present: true,
+        supplier_vat_number: "4987654321",
+        description_present: true,
+        recipient_details_present: false,
+      }),
+    ]);
+    expect(r!.invoice_tier).toBe("full");
+    expect(r!.flags.some((f) => f.code === "full_invoice_required")).toBe(false);
+    expect(r!.claim_status).toBe("claimable");
   });
 });

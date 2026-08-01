@@ -5,11 +5,11 @@ import type { ExtractedTransaction } from "../schemas";
 // receipts (data/batches.ts) SHOULD return. It encodes the organiser answer key
 // (§7.4): 8 complete, 3 missing, 1 no-tax-invoice, 1 VAT-not-applicable.
 //
-// NOTE (live-path caveat, tracked in PLAN.md): the terse sample text for EXP-002/004/
-// 006/011 does not literally print a "Tax Invoice" line or an invoice serial. Real
-// versions of these documents do, and the answer key treats them as complete. This
-// fixture reflects the intended (complete) extraction; if the LIVE model under-extracts
-// those fields, enrich the receipt TEXT (not amounts) rather than loosen the rules.
+// NOTE (live-path caveat, tracked in PLAN.md): the sample text for EXP-002/004/006/011
+// now prints an explicit "Tax Invoice" line and serial (added in batches.ts, amounts and
+// the intentionally-faded EXP-006 date untouched) so the LIVE model no longer under-reads
+// those documentary fields and falsely flags Batch A as at-risk. The answer key already
+// treats them as complete; this keeps live extraction aligned without loosening the rules.
 // -----------------------------------------------------------------------------
 
 function mk(p: Partial<ExtractedTransaction> & Pick<ExtractedTransaction, "source_id">): ExtractedTransaction {

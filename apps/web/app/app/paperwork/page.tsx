@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, FileText } from "lucide-react";
-import { formatZAR, type LedgerRow } from "@pocketpulse/core";
+import { formatZAR, isTrustedDigitalVendor, type LedgerRow } from "@pocketpulse/core";
 import { useLedger } from "@/components/ledger-provider";
 import { EvidenceDrawer } from "@/components/evidence-drawer";
 import { Card } from "@/components/ui/card";
@@ -57,6 +57,12 @@ export default function PaperworkPage() {
                 {r.claim_missing_fields.length > 0 && (
                   <div className="mt-1 text-sm text-muted-foreground">
                     Missing: {r.claim_missing_fields.map((f) => f.replace(/_/g, " ")).join(", ")}
+                  </div>
+                )}
+                {isTrustedDigitalVendor(r) && (
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    This looks like a digital receipt — download the full tax invoice from the {r.merchant} app
+                    or billing portal to claim the VAT.
                   </div>
                 )}
               </div>

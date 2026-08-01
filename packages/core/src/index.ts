@@ -23,6 +23,7 @@ export {
   type ClaimStatus,
 } from "./rules/claimability";
 export { normaliseMerchant, batchLevelFlags } from "./rules/checks";
+export { isTrustedDigitalVendor } from "./rules/trustedVendors";
 export { computeVat, estimateInclusiveVat } from "./rules/vat";
 export {
   batchTotals,
