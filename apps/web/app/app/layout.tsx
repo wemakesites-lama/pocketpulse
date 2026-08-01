@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { webStorage, DEMO_KEY } from "@/lib/storage.web";
 import { LedgerProvider } from "@/components/ledger-provider";
+import { getSupabase, supabaseEnabled } from "@/lib/supabase.client";
 
-// PART 11 app shell. Client-side demo gate (spec 10): redirects to /login when pp_demo
-// is absent. NOT a security boundary — deliberately client-side, no middleware/cookies.
+// PART 11 app shell. Auth guard: a Supabase session when configured, else the
+// localStorage demo gate. Client-side (not a security boundary).
 const NAV = [
   { href: "/app", label: "Overview" },
   { href: "/app/add", label: "Add receipts" },
@@ -21,15 +22,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const supabase = getSupabase();
 
   useEffect(() => {
+    if (supabaseEnabled && supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (!data.session) router.replace("/login");
+        else setReady(true);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+        if (!s) router.replace("/login");
+      });
+      return () => sub.subscription.unsubscribe();
+    }
     void webStorage.get(DEMO_KEY).then((v) => {
       if (!v) router.replace("/login");
       else setReady(true);
     });
-  }, [router]);
+  }, [router, supabase]);
 
   async function signOut() {
+    if (supabaseEnabled && supabase) await supabase.auth.signOut();
     await webStorage.remove(DEMO_KEY);
     router.push("/");
   }
